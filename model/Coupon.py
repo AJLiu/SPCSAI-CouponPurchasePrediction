@@ -26,6 +26,8 @@ class Coupon:
         self.smallAreaName = "" #JAP Small area the shop is in
 
         self.couponid = ""
-        self.couponVisits = [CouponVisit()] # Coupon visists in an array
+        self.couponAreas = [] # Coupon visists in an array
+        return
+
 
 
