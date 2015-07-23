@@ -1,0 +1,9 @@
+class User:
+    """Class used to hold the info found in user; data is gotten from userlist.csv"""
+    def __init__(self):
+        self.reg_date = ""
+        self.sex_id = ''
+        self.age = 0
+        self.withdraw_date = ""
+        self.pref_name = ""
+        self.user_id = ""
