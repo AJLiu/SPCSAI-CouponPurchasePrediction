@@ -2,7 +2,7 @@ import csv
 import time
 from model.User import User
 
-__author__ = 'MES'
+__author__ = "Ivon Liu"
 
 print("Hello world")
 
