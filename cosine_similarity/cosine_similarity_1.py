@@ -62,12 +62,12 @@ tcmat = test_coupons.as_matrix(test_coupons.columns.difference(['COUPON_ID_hash'
 # calculate "cosine similarity"
 similarity = np.dot(upmat, tcmat.T)
 
-# print a list of top 10 results
-#results = [['', '']] * len(similarity)
-results = pd.DataFrame(index=user_preferences.index, columns=["users", "coupons"])
+# store top 10 scores for each user in an array
+results = [['', '']] * (len(similarity)+1)
+results[0] = ["USER_ID_hash", "PURCHASED_COUPONS"]
 for i in range(0, len(similarity)): # iterate by row
-    print("row", i)
-    results[str(i)]["users"] = user_preferences.at[i, 'USER_ID_hash']
+    row = ['', '']
+    row[0] = user_preferences.at[i, 'USER_ID_hash']
     coupons = ""
     score_indices = np.argsort(similarity[i,])
     count = 0
@@ -78,6 +78,10 @@ for i in range(0, len(similarity)): # iterate by row
         if count < 9:
             coupons = coupons + " "
         count = count + 1
-    results[i]["coupons"] = coupons
+    row[1] = coupons
+    results[i+1] = row #shifted by 1 for header row
+    
+results = np.asarray(results)
+np.savetxt("../data/output/cosine_similarity.csv", results, fmt="\"%s\"", delimiter=",")
 
 print("done")
