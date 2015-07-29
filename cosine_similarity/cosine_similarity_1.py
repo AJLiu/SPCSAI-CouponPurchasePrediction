@@ -59,6 +59,25 @@ user_preferences = train.groupby('USER_ID_hash', as_index=False).aggregate(np.me
 upmat = user_preferences.as_matrix(user_preferences.columns.difference(['USER_ID_hash']))
 tcmat = test_coupons.as_matrix(test_coupons.columns.difference(['COUPON_ID_hash']))
 
+# calculate "cosine similarity"
 similarity = np.dot(upmat, tcmat.T)
+
+# print a list of top 10 results
+#results = [['', '']] * len(similarity)
+results = pd.DataFrame(index=user_preferences.index, columns=["users", "coupons"])
+for i in range(0, len(similarity)): # iterate by row
+    print("row", i)
+    results[str(i)]["users"] = user_preferences.at[i, 'USER_ID_hash']
+    coupons = ""
+    score_indices = np.argsort(similarity[i,])
+    count = 0
+    for index in reversed(score_indices):
+        if count >= 10:
+            break
+        coupons = coupons + test_coupons.at[index, 'COUPON_ID_hash']
+        if count < 9:
+            coupons = coupons + " "
+        count = count + 1
+    results[i]["coupons"] = coupons
 
 print("done")
