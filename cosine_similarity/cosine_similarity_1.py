@@ -1,13 +1,9 @@
 import numpy as np
 import pandas as pd
 import patsy
+# from scipy.spatial import distance
 
 __author__ = 'MES'
-
-# coupon_purchase_log = genfromtxt("data/coupon_detail_train.csv", delimiter=',')
-# print(coupon_purchase_log)
-
-pd.set_option('expand_frame_repr', False)
 
 coupon_purchase_log = pd.read_csv("../data/coupon_detail_train.csv")
 coupon_list_train = pd.read_csv("../data/coupon_list_train.csv")
@@ -16,14 +12,14 @@ user_list = pd.read_csv("../data/user_list.csv")
 
 train = coupon_purchase_log.merge(coupon_list_train)
 train = train[["COUPON_ID_hash","USER_ID_hash",
-               "GENRE_NAME","DISCOUNT_PRICE",
+               "GENRE_NAME","PRICE_RATE","CATALOG_PRICE","DISCOUNT_PRICE",
                "USABLE_DATE_MON","USABLE_DATE_TUE","USABLE_DATE_WED","USABLE_DATE_THU",
                "USABLE_DATE_FRI","USABLE_DATE_SAT","USABLE_DATE_SUN","USABLE_DATE_HOLIDAY",
                "USABLE_DATE_BEFORE_HOLIDAY","ken_name","small_area_name"]]
 
 coupon_list_test['USER_ID_hash'] = "dummyuser"
 coupon_characteristics = coupon_list_test[["COUPON_ID_hash","USER_ID_hash",
-               "GENRE_NAME","DISCOUNT_PRICE",
+               "GENRE_NAME","PRICE_RATE","CATALOG_PRICE","DISCOUNT_PRICE",
                "USABLE_DATE_MON","USABLE_DATE_TUE","USABLE_DATE_WED","USABLE_DATE_THU",
                "USABLE_DATE_FRI","USABLE_DATE_SAT","USABLE_DATE_SUN","USABLE_DATE_HOLIDAY",
                "USABLE_DATE_BEFORE_HOLIDAY","ken_name","small_area_name"]]
@@ -34,6 +30,10 @@ train = train.append(coupon_characteristics)
 train = train.fillna(1)
 
 # bin the prices into categories
+train['PRICE_RATE'] = pd.cut(train['PRICE_RATE'], [-0.01, 20, 40, 60, 80, 100],
+                   labels=["cheap", "moderate", "expensive", "high", "luxury"])
+train['CATALOG_PRICE'] = pd.cut(train['CATALOG_PRICE'], [-0.01, 0, 1000, 10000, 50000, 100000, np.inf],
+                   labels=["free", "cheap", "moderate", "expensive", "high", "luxury"])
 train['DISCOUNT_PRICE'] = pd.cut(train['DISCOUNT_PRICE'], [-0.01, 0, 1000, 10000, 50000, 100000, np.inf],
                    labels=["free", "cheap", "moderate", "expensive", "high", "luxury"])
 
@@ -60,14 +60,35 @@ upmat = user_preferences.as_matrix(user_preferences.columns.difference(['USER_ID
 tcmat = test_coupons.as_matrix(test_coupons.columns.difference(['COUPON_ID_hash']))
 
 # calculate "cosine similarity"
+
+# Method 1
 similarity = np.dot(upmat, tcmat.T)
 
-# store top 10 scores for each user in an array
-results = [['', '']] * (len(similarity)+1)
-results[0] = ["USER_ID_hash", "PURCHASED_COUPONS"]
+# Method 1 expansion (doesn't work)
+#==============================================================================
+# square_mag = np.diag(similarity)
+# inv_square_mag = 1 / square_mag
+# inv_square_mag[np.isinf(inv_square_mag)] = 0
+# inv_mag = np.sqrt(inv_square_mag)
+# 
+# cosine = similarity * inv_mag
+# cosine = cosine * inv_mag
+# similarity = cosine
+#==============================================================================
+
+# Method 2
+#==============================================================================
+# tcmat_t = tcmat.T
+# similarity = np.empty([len(user_preferences), len(test_coupons)])
+# for row in range(0, len(upmat)):
+#     for col in range(0, len(tcmat_t)):
+#         similarity[row][col] = distance.cosine(upmat[row], tcmat[col])
+#==============================================================================
+
+# store top 10 scores for each user
+results = pd.DataFrame({"USER_ID_hash": ['']*len(similarity), "PURCHASED_COUPONS": ['']*len(similarity)})
 for i in range(0, len(similarity)): # iterate by row
-    row = ['', '']
-    row[0] = user_preferences.at[i, 'USER_ID_hash']
+    user_hash = user_preferences.at[i, 'USER_ID_hash']
     coupons = ""
     score_indices = np.argsort(similarity[i,])
     count = 0
@@ -78,10 +99,12 @@ for i in range(0, len(similarity)): # iterate by row
         if count < 9:
             coupons = coupons + " "
         count = count + 1
-    row[1] = coupons
-    results[i+1] = row #shifted by 1 for header row
+    results.set_value(i, 'USER_ID_hash', user_hash)
+    results.set_value(i, 'PURCHASED_COUPONS', coupons)
     
-results = np.asarray(results)
-np.savetxt("../data/output/cosine_similarity.csv", results, fmt="\"%s\"", delimiter=",")
+# merge with users master list and save to csv
+user_list = user_list[['USER_ID_hash']]
+results = user_list.merge(results, how='outer')
+results.to_csv("../data/output/cosine_similarity.csv", na_rep="NA", index=False)
 
 print("done")
