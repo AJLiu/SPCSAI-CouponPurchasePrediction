@@ -22,7 +22,7 @@ krager_detail = pd.DataFrame(columns=coupon_detail.columns)
 for i in range(0, 310):
     row = coupon_detail[coupon_detail.COUPON_ID_hash == krager_list.at[i , 'COUPON_ID_hash' ]]
     krager_detail = krager_detail.append(row)
-    coupon_detail = coupon_detail[coupon_detail.COUPON_ID_hash != krager_detail.at[i, 'COUPON_ID_hash']]
+    coupon_detail = coupon_detail[coupon_detail.COUPON_ID_hash != krager_list.at[i, 'COUPON_ID_hash']]
     
 krager_list.to_csv("../csv/Krager_Set/Mutilated Orginal Sheets/coupon_list_krager.csv", na_rep="NA", index=False)
 krager_detail.to_csv("../csv/Krager_Set/Mutilated Orginal Sheets/coupon_detail_krager.csv", na_rep="NA", index=False)
